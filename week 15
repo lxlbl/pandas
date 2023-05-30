@@ -1,0 +1,78 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import matplotlib
+
+class DataAnalysis:
+    def __init__(self,plist):
+        self._plist=plist
+        
+    def read_data(self,space):
+        datas=[]
+        #读取数据
+        for path in self._plist:
+           df0 = pd.read_csv(path,encoding='utf-8',header=0)
+           datas.append(df0)
+        #将所有的df合成一个
+        df = pd.concat(datas, axis=0)
+        #进行异常值的处理
+        df['station'] =df['station'].apply(lambda x :x.replace(' ',space))
+        return df
+           
+    def time_data(self,df,pollution,space):#时间上的分析，以年为单位
+        #摘出年份、某一污染物、地点这三列
+        new_df1 = df.loc[:,['year',pollution,'station']]
+        print(new_df1)
+        #摘出某一特定地点的行
+        new_df2 = new_df1.loc[new_df1['station'] == space].copy() 
+        print(new_df2)
+        #去掉地点这一列
+        new_df3 = new_df2.drop('station',axis=1)
+        #按照年份分组求均值
+        new_df4=new_df3.groupby('year').mean()
+        #转换为dataframe的格式
+        new_df4.reset_index(inplace=True)
+        print(new_df4)
+        return new_df4
+        
+    def space_data(self,df,pollution,time):#空间上的分析
+        #单独摘出年份、某一特定污染物、地点这三列
+        new_df1 = df.loc[:,['year',pollution,'station']]
+        #摘出年份等于某一年的行
+        new_df2 = new_df1.loc[new_df1['year'] == time].copy() 
+        #去掉年份这一列
+        new_df3 = new_df2.drop('year',axis=1)
+        #按照地点分组求均值并转换为DF格式
+        new_df4=new_df3.groupby('station').mean()
+        new_df4.reset_index(inplace=True)
+        return new_df4
+    
+class DataDraw:
+    def __init__(self,df1,df2):
+        self._df1=df1
+        self._df2=df2
+    
+    def draw_time(self,pollution):#画时间分析的图
+        plt.scatter(self._df1['year'], self._df1[pollution])
+        plt.title('time analysis')
+        plt.show()
+    
+    def draw_space(self,pollution):#画空间分析的图
+        x=[i[:4] for i in self._df2['station']]
+        plt.scatter(x, self._df2[pollution])
+        plt.title('space analysis')
+        plt.show()
+        
+def main():#类的实例化
+    plist=['C:/Users/DELL/Desktop/PRSA_Data_20130301-20170228/'+
+           str(i)+'.csv' for i in range(1,13)]
+    d=DataAnalysis(plist)
+    df=d.read_data('Wanshouxigong')
+    dftime=d.time_data(df, 'PM2.5', 'Wanshouxigong')
+    dfspace=d.space_data(df, 'PM2.5', 2014)
+    dr=DataDraw(dftime,dfspace)
+    dr.draw_time('PM2.5')
+    dr.draw_space('PM2.5')
+if __name__=='__main__':
+    main()
+
